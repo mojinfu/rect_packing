@@ -353,7 +353,7 @@ def trainModel():
             binChose ,itemChose,rotationChose =   getChoseByAction(action)
             terminal,_,reward = bm.Action(itemChose,binChose,rotationChose)
             # if brain.timeStep %100 ==0:
-                # print("rotationChose :",rotationChose,"binChose :",binChose,"itemChose :",itemChose,"reward :",reward,"terminal :",terminal)
+            print("rotationChose :",rotationChose,"binChose :",binChose,"itemChose :",itemChose,"reward :",reward,"terminal :",terminal)
             
             brain.setPerceptionAndTrain(bm.AllStatus(),action,reward,terminal)
             if terminal:

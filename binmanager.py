@@ -274,7 +274,7 @@ class binManager:
         if itIndex<0:
             raise("")
             # return False,False, -1  
-        oldItemIndex = self._algoVItemIndexList[itIndex]    
+        oldItemIndex = itIndex    
         ifComplete,ifSuccess=  self.Place(itIndex,binIndex,rotationChose)
         self._algoVItemIndexList[itAlgoVIndex] = -1
         if self.placedNum % len(self._algoVItemIndexList) ==0:
