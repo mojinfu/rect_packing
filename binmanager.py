@@ -274,6 +274,7 @@ class binManager:
         if itIndex<0:
             raise("")
             # return False,False, -1  
+        oldItemIndex = self._algoVItemIndexList[itIndex]    
         ifComplete,ifSuccess=  self.Place(itIndex,binIndex,rotationChose)
         self._algoVItemIndexList[itAlgoVIndex] = -1
         if self.placedNum % len(self._algoVItemIndexList) ==0:
@@ -294,7 +295,7 @@ class binManager:
             return True,ifSuccess,-1000
         else:
             # return ifComplete,ifSuccess, 0
-            return ifComplete,ifSuccess, 1
+            return ifComplete,ifSuccess, self.items[oldItemIndex].width * self.items[oldItemIndex].height
 
     def Place(self, itIndex, binIndex,rotationChose):
         # print("Put ",itIndex ,"in ",binIndex)
