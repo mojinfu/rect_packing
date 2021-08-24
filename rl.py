@@ -17,7 +17,7 @@ from collections import deque
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
-writer = SummaryWriter("/Users/mojinfu/PyWorks/github.com/mojinfu/rect_packing/boardx/0820/")
+writer = SummaryWriter("./boardx/boardx0813")
 binW =  2
 binH  = 2
 binV =  4
@@ -171,7 +171,7 @@ class BrainDQNMain(object):
 
         if self.timeStep%100 == 0 :
             print("self.timeStep:",self.timeStep,"loss ",loss)
-        if self.timeStep % (UPDATE_TIME * 10) == 0:
+        if self.timeStep % (UPDATE_TIME * 100) == 0:
             self.saveAndRun( 10000 )
         elif self.timeStep % UPDATE_TIME == 0:
             self.saveAndRun( -1 )
@@ -371,6 +371,6 @@ if __name__ == '__main__':
     # Step 1: init BrainDQN
     random.seed(0)
     # runModel("./120000params3.pth",False,1)
-    # runModel("./2000params3.pth",True,1)
-    trainModel()
+    runModel("./params3.pth",True,1)
+    # trainModel()
     
