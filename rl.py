@@ -1,11 +1,11 @@
 import pdb
 import json
 from tensorboardX import SummaryWriter
-import cv2
+# import cv2
 import sys
-from PIL import Image
+# from PIL import Image
 from binmanager import *
-import matplotlib.pyplot as pyplot
+# import matplotlib.pyplot as pyplot
 import os
 # import scipy
 # os.environ["SDL_VIDEODRIVER"] = "dummy"
