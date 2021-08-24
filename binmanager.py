@@ -275,11 +275,13 @@ class binManager:
             raise("")
             # return False,False, -1  
         ifComplete,ifSuccess=  self.Place(itIndex,binIndex,rotationChose)
-        if self._maxIndexInunplacedItemIndexList < len(self.items) - 1:
-            self._maxIndexInunplacedItemIndexList = self._maxIndexInunplacedItemIndexList +1
-            self._algoVItemIndexList[itAlgoVIndex] = self._maxIndexInunplacedItemIndexList
-        else:
-            self._algoVItemIndexList[itAlgoVIndex] = -1 
+        self._algoVItemIndexList[itAlgoVIndex] = -1
+        if self.placedNum % len(self._algoVItemIndexList) ==0:
+            for iii  in range(len(self._algoVItemIndexList)):
+                if  self._algoVItemIndexList[iii] == -1:
+                    if self._maxIndexInunplacedItemIndexList < len(self.items) - 1:
+                        self._maxIndexInunplacedItemIndexList = self._maxIndexInunplacedItemIndexList +1
+                        self._algoVItemIndexList[iii] = self._maxIndexInunplacedItemIndexList
         if not ifSuccess:
             oldBinIndex = self._algoVBinIndexList[binAlgoVIndex]
             replacebin = binAlgoVIndex
@@ -288,8 +290,8 @@ class binManager:
                     replacebin = i 
                     break
             self._algoVBinIndexList[replacebin] = len(self.bins) -1 
-            return ifComplete,ifSuccess,-1 * self.bins[oldBinIndex].UnUsedArea
-            # return ifComplete,ifSuccess, 1
+            # return ifComplete,ifSuccess,-1 * self.bins[oldBinIndex].UnUsedArea
+            return True,ifSuccess,-1000
         else:
             # return ifComplete,ifSuccess, 0
             return ifComplete,ifSuccess, 1

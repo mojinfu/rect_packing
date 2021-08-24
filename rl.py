@@ -18,10 +18,10 @@ import torch
 from torch.autograd import Variable
 import torch.nn as nn
 writer = SummaryWriter("./boardx/boardx0813")
-binW =  2
-binH  = 2
+binW =  20
+binH  = 10
 binV =  4
-itemV  = 1
+itemV  = 5
 # GAME = 'bird' # the name of the game being played for log files
 # ACTIONS = 2 # number of valid actions
 GAMMA = 0.99 # decay rate of past observations
@@ -55,7 +55,7 @@ class DeepNetWork(nn.Module):
         )
         self.fc1 = nn.Sequential(
             # nn.Linear(800*binV+itemV*2,512),
-            nn.Linear(64+itemV*2,binV*itemV*4),
+            nn.Linear(970,binV*itemV*4),
             nn.ReLU()
         )
         self.out = nn.Linear(binV*itemV*4,binV*itemV*2)
@@ -258,11 +258,11 @@ class BrainDQNMain(object):
             ask = data[ii]
             bm= binManager(myEnv ,binV,itemV)
             for wh in ask:
-                # bm.AddRandomItem()
-                if random.random() < 0.5:
-                    bm.AddItem(1,2)
-                else:
-                    bm.AddItem(2,1) 
+                bm.AddRandomItem()
+                # if random.random() < 0.5:
+                #     bm.AddItem(1,2)
+                # else:
+                #     bm.AddItem(2,1) 
                 # bm.AddItem(wh[0],wh[1]) 
 
             self.setInitState(bm.AllStatus())
@@ -277,7 +277,7 @@ class BrainDQNMain(object):
                 terminal,ifSucc ,reward = bm.Action(itemChose,binChose ,rotationChose)
                 rewardAll = rewardAll+ reward
                 self.setInitState(bm.AllStatus())
-                if terminal :
+                if bm.placedNum == len(bm.items) :
                     binAll = binAll + len(bm.bins)
                     if orgDrawNum>0:
                         paper.Close()
@@ -332,11 +332,11 @@ def trainModel():
     while True:
         bm= binManager(myEnv ,binV,itemV)
         for i in range(itemV*5):
-            # bm.AddRandomItem()
-            if random.random() < 0.5:
-                bm.AddItem(1,2)
-            else:
-                bm.AddItem(2,1) 
+            bm.AddRandomItem()
+            # if random.random() < 0.5:
+            #     bm.AddItem(1,2)
+            # else:
+            #     bm.AddItem(2,1) 
 
 
         brain = BrainDQNMain(actions,False) # Step 2: init Flappy Bird Game
@@ -359,11 +359,11 @@ def trainModel():
             if terminal:
                 bm= binManager(myEnv,binV,itemV)
                 for i in range(itemV*5):
-                    # bm.AddRandomItem()
-                    if random.random() < 0.5:
-                        bm.AddItem(1,2)
-                    else:
-                        bm.AddItem(2,1) 
+                    bm.AddRandomItem()
+                    # if random.random() < 0.5:
+                    #     bm.AddItem(1,2)
+                    # else:
+                    #     bm.AddItem(2,1) 
                 brain.setInitState(bm.AllStatus())
 
             
@@ -371,6 +371,6 @@ if __name__ == '__main__':
     # Step 1: init BrainDQN
     random.seed(0)
     # runModel("./120000params3.pth",False,1)
-    runModel("./params3.pth",True,1)
-    # trainModel()
+    # runModel("./params3.pth",True,1)
+    trainModel()
     
