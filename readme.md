@@ -32,3 +32,4 @@ reward 的设计
         A.放完所有item
         B.用完一个item
             
+item list的信息设计

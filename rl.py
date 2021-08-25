@@ -41,21 +41,21 @@ class DeepNetWork(nn.Module):
     def __init__(self,):
         super(DeepNetWork,self).__init__()
         self.conv1 = nn.Sequential(
-            nn.Conv2d(in_channels=binV, out_channels=32, kernel_size=2, stride=1, padding=2),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2)
+            nn.Conv2d(in_channels=binV, out_channels=32, kernel_size=3, stride=1, padding=2),
+            # nn.ReLU(inplace=True),
+            # nn.MaxPool2d(kernel_size=2)
         )
         self.conv2 = nn.Sequential(
-            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(inplace=True)
+            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1),
+            # nn.ReLU(inplace=True)
         )
         self.conv3 = nn.Sequential(
             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(inplace=True)
+            # nn.ReLU(inplace=True)
         )
         self.fc1 = nn.Sequential(
             # nn.Linear(800*binV+itemV*2,512),
-            nn.Linear(970,binV*itemV*4),
+            nn.Linear(16906,binV*itemV*4),
             nn.ReLU()
         )
         self.out = nn.Linear(binV*itemV*4,binV*itemV*2)
@@ -172,18 +172,18 @@ class BrainDQNMain(object):
         if self.timeStep%100 == 0 :
             print("self.timeStep:",self.timeStep,"loss ",loss)
         if self.timeStep % (UPDATE_TIME * 100) == 0:
-            self.saveAndRun( 10000 )
+            self.saveAndRun( -1 )
         elif self.timeStep % UPDATE_TIME == 0:
             self.saveAndRun( -1 )
     def saveAndRun(self, drawNum ):
         self.Q_old.load_state_dict(self.Q_new.state_dict())
         self.save()
         # 测试装箱效果
-        reward , binNum  = self.runModel(drawNum,1)
-        writer.add_scalar("0811reward收敛情况",reward,self.timeStep)
-        writer.add_scalar("0811效果测试",binNum,self.timeStep)
-        print("0811reward收敛情况",reward,self.timeStep )
-        print("0811效果测试",binNum,self.timeStep )
+        reward , _  = self.runModel(drawNum,1)
+        writer.add_scalar("reward收敛情况",reward,self.timeStep)
+        # writer.add_scalar("0811效果测试",binNum,self.timeStep)
+        print("reward收敛情况",reward,self.timeStep )
+        # print("0811效果测试",binNum,self.timeStep )
     def setPerceptionAndTrain(self,nextObservation,action,reward,terminal): #print(nextObservation.shape)
         # newState = np.append(self.currentState[1:,:,:],nextObservation,axis = 0) # newState = np.append(nextObservation,self.currentState[:,:,1:],axis = 2)
         # 这是寻找连续动作下的状态  bin packing 不需要
@@ -257,7 +257,7 @@ class BrainDQNMain(object):
                 break
             ask = data[ii]
             bm= binManager(myEnv ,binV,itemV)
-            for wh in ask:
+            for wh in range(itemV*5):
                 bm.AddRandomItem()
                 # if random.random() < 0.5:
                 #     bm.AddItem(1,2)
@@ -268,20 +268,19 @@ class BrainDQNMain(object):
             self.setInitState(bm.AllStatus())
             if orgDrawNum>0 :
                 paper = Paper(myEnv.binWidth,myEnv.binHeight)
-            while True:
+            for _ in range(100):
                 action = self.getAction(bm,ifRandom = False) 
-                # rotationChose =  action % 2 
-                # binChose = (action//2) // itemV
-                # itemChose = (action//2) % itemV
                 binChose ,itemChose,rotationChose =   getChoseByAction(action)
                 terminal,ifSucc ,reward = bm.Action(itemChose,binChose ,rotationChose)
                 rewardAll = rewardAll+ reward
                 self.setInitState(bm.AllStatus())
                 if bm.placedNum == len(bm.items) :
-                    binAll = binAll + len(bm.bins)
-                    if orgDrawNum>0:
+                    if orgDrawNum>0 :
                         paper.Close()
-                    break
+                        paper = Paper(myEnv.binWidth,myEnv.binHeight)
+                    bm= binManager(myEnv ,binV,itemV)
+                    for wh in range(itemV*5):
+                        bm.AddRandomItem()
                 if drawNum>0:
                     drawNum = drawNum - 1
                     print("rotationChose :",rotationChose,"binChose :",binChose,"itemChose :",itemChose,"reward :",reward,"terminal :",terminal)
@@ -299,13 +298,13 @@ class BrainDQNMain(object):
                     # if reward == -1:
                     #     print("选错item")
                     if not ifSucc:
-                        paper.Close()
-                        paper = Paper(myEnv.binWidth,myEnv.binHeight)
-                        for iii in range(len(bm._algoVBinIndexList)):
-                            bin = bm.bins[bm._algoVBinIndexList[iii]]
-                            for rect in bin.placedRect:
-                                paper.AddBlackRect(rect.X(),rect.Y(),rect.Width(),rect.Height(),iii)
-                                # time.sleep(0.01)
+                        time.sleep(1)
+                        if orgDrawNum>0 :
+                            paper.Close()
+                            paper = Paper(myEnv.binWidth,myEnv.binHeight)
+                        bm= binManager(myEnv ,binV,itemV)
+                        for wh in range(itemV*5):
+                            bm.AddRandomItem()
 
                 
                 
@@ -352,9 +351,8 @@ def trainModel():
             action = brain.getAction(bm,ifRandom = True)
             binChose ,itemChose,rotationChose =   getChoseByAction(action)
             terminal,_,reward = bm.Action(itemChose,binChose,rotationChose)
-            # if brain.timeStep %100 ==0:
-            print("rotationChose :",rotationChose,"binChose :",binChose,"itemChose :",itemChose,"reward :",reward,"terminal :",terminal)
-            
+            if brain.timeStep %100 ==0:
+                print("rotationChose :",rotationChose,"binChose :",binChose,"itemChose :",itemChose,"reward :",reward,"terminal :",terminal)
             brain.setPerceptionAndTrain(bm.AllStatus(),action,reward,terminal)
             if terminal:
                 bm= binManager(myEnv,binV,itemV)
@@ -372,5 +370,6 @@ if __name__ == '__main__':
     random.seed(0)
     # runModel("./120000params3.pth",False,1)
     # runModel("./params3.pth",True,1)
+    # runModel("",True,1)
     trainModel()
     
