@@ -246,7 +246,7 @@ class binManager:
                             m[j,i] = -1
         self._negaM = m
     def AddRandomItem(self, name="" ):
-        self.AddItem( random.randint(1, self.env.binWidth)  ,random.randint(1, self.env.binHeight) )
+        self.AddItem( random.randint(1, self.env.binWidth/2)  ,random.randint(1, self.env.binHeight/2) )
         # self.AddItem( random.randint(1, self.env.binWidth)  ,random(1, self.env.binHeight) )
     def AddItem(self,width, height , name="" ):
         it = Item(width ,height, len(self.items),name)
@@ -261,7 +261,7 @@ class binManager:
                 break
             
         self.placed.append(0)
-    def Action(self, itAlgoVIndex, binAlgoVIndex,rotationChose):
+    def Action(self, itAlgoVIndex, binAlgoVIndex,rotationChose ):
         if itAlgoVIndex < 0  or itAlgoVIndex >= len(self._algoVItemIndexList)  or binAlgoVIndex < 0   or binAlgoVIndex >= len(self._algoVBinIndexList) :
             return False,False, -1
         itIndex = self._algoVItemIndexList[itAlgoVIndex]
@@ -303,6 +303,8 @@ class binManager:
             return ifComplete,ifSuccess, self.items[oldItemIndex].width * self.items[oldItemIndex].height
 
     def Place(self, itIndex, binIndex,rotationChose):
+        if itIndex<0 or binIndex<0:
+            raise("dk")
         # print("Put ",itIndex ,"in ",binIndex)
         ifComplete = False 
         ifSuccess = False    
@@ -341,8 +343,10 @@ class binManager:
 
     def BinStausMixs(self):
         mList = []
+        binIndexList = []
         for binI in self._algoVBinIndexList:
             if binI>= 0:
+                binIndexList.append(binI)
                 bin = self.bins[binI]
                 m = numpy.zeros((bin.height,bin.width))
                 for rect in bin.placedRect:
@@ -352,8 +356,9 @@ class binManager:
                             m[j+y,i+x] = 1
                 mList.append(m)
             else:
+                binIndexList.append(-1)
                 mList.append(self._negaM)
-        return mList
+        return mList,binIndexList
 
 
     def ItemMixs(self):
@@ -364,11 +369,43 @@ class binManager:
             else: 
                 out.append([self.items[itI].width,self.items[itI].height])
         return out
+
+    def ItemMixs_RandItemBatch(self):
+        unPlaced = []
+        for i in range(len(self.placed)):
+            if self.placed[i]:
+                continue
+            else:
+                unPlaced.append(i)
+        if len(unPlaced)>len(self._algoVItemIndexList):
+            samples = random.sample(unPlaced, len(self._algoVItemIndexList))  
+        else:
+            while len(unPlaced)<len(self._algoVItemIndexList):
+                unPlaced.append(-1)
+            samples = unPlaced
+
+
+
+        out = []
+        for itI in samples:
+            if itI<0:
+                out.append([-1,-1])
+            else: 
+                out.append([self.items[itI].width,self.items[itI].height])
+        return out,samples
     def AllStatus(self):
         out = []
-        out.append(self.BinStausMixs())
+        binM,binI = self.BinStausMixs()
+        out.append(binM)
         out.append(self.ItemMixs())
         return out
+    def AllStatus_RandItemBatch(self):
+        out = []
+        binM,binI = self.BinStausMixs()
+        out.append(binM)
+        m , itI  = self.ItemMixs_RandItemBatch()
+        out.append(m)
+        return out,itI,binI
 if __name__ == "__main__":
     random.seed(0)
     env =env(20,10)

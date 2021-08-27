@@ -205,7 +205,9 @@ class BrainDQNMain(object):
         self.currentState = nextObservation
         self.timeStep += 1
 
-    def getAction(self, bm ,ifRandom = True):
+    def getAction(self, bm ,ifRandom = True, currentState=[]):
+        if len(currentState)!=0:
+            self.currentState = currentState
         currentBinState = torch.Tensor([self.currentState[0]])
         currentItemState = torch.Tensor([self.currentState[1]])
         QValue = self.Q_new(currentBinState ,currentItemState )[0]
@@ -215,9 +217,8 @@ class BrainDQNMain(object):
         if self.timeStep % FRAME_PER_ACTION == 0:
             if random.random() <= self.epsilon and ifRandom:
                 action_index = random.randrange(self.actions)
-                
                 while True:
-                    if bm._algoVItemIndexList[(action_index//2) % itemV ]<0:
+                    if bm._algoVItemIndexList[(action_index//2) % itemV ]<0 :
                         action_index = (action_index + 2) % self.actions
                     else:
                         break
@@ -225,15 +226,15 @@ class BrainDQNMain(object):
 
 
                 # print("choose random action " + str(action_index))
-                return action_index
+                return action_index , 0 
             else:
                 Q  =  QValue.detach().numpy()
                 for i in range(Q.size):
-                    if bm._algoVItemIndexList[(i//2) % itemV ]<0:
+                    if self.currentState[1][(i//2) % itemV ][0]<0:
                         Q[i]= - np.Inf
                 action_index = np.argmax(Q)
                 # print("choose qnet value action " + str(action_index))
-                return action_index
+                return action_index,Q[action_index]
 
 
 
@@ -245,66 +246,59 @@ class BrainDQNMain(object):
         # self.currentState = np.stack((observation, observation, observation, observation),axis=0)
         self.currentState = observation
         # print(self.currentState.shape)
-    def runModel(self,drawNum,askNum):
+    def runModel(self,drawNum,askNum,isContinue = False,ifSwitchBatch = False):
         FINAL_EPSILON = 0
-        data = json.loads(open('./testData.json').read() )
+        # data = json.loads(open('./testData.json').read() )
         myEnv = env(binW,binH)
         rewardAll = 0
         binAll = 0
-        orgDrawNum = drawNum
-        for ii in range(len(data)):
-            if ii>=askNum:
-                break
-            ask = data[ii]
+        ifDraw = drawNum > 0
+        itemNum = itemV * 50
+        for ii in range(askNum):
+            # if ii>=askNum:
+            #     break
+            # ask = data[ii]
             bm= binManager(myEnv ,binV,itemV)
-            for wh in range(itemV*5):
+            for wh in range(itemNum):
                 bm.AddRandomItem()
-                # if random.random() < 0.5:
-                #     bm.AddItem(1,2)
-                # else:
-                #     bm.AddItem(2,1) 
-                # bm.AddItem(wh[0],wh[1]) 
-
-            self.setInitState(bm.AllStatus())
-            if orgDrawNum>0 :
+            if ifDraw :
                 paper = Paper(myEnv.binWidth,myEnv.binHeight)
-            for _ in range(100):
-                action = self.getAction(bm,ifRandom = False) 
-                binChose ,itemChose,rotationChose =   getChoseByAction(action)
-                terminal,ifSucc ,reward = bm.Action(itemChose,binChose ,rotationChose)
-                rewardAll = rewardAll+ reward
-                self.setInitState(bm.AllStatus())
-                if bm.placedNum == len(bm.items) :
-                    if orgDrawNum>0 :
+            
+            # self.setInitState(bm.AllStatus())
+
+            while True:
+                if bm.placedNum == itemNum:
+                    if ifDraw :
                         paper.Close()
-                        paper = Paper(myEnv.binWidth,myEnv.binHeight)
-                    bm= binManager(myEnv ,binV,itemV)
-                    for wh in range(itemV*5):
-                        bm.AddRandomItem()
-                if drawNum>0:
-                    drawNum = drawNum - 1
-                    print("rotationChose :",rotationChose,"binChose :",binChose,"itemChose :",itemChose,"reward :",reward,"terminal :",terminal)
-                    # print()
-                    # print()
-                    # print()
-                    # print()
-                    # print("---------------------")
+                    break
+                sM, itIList ,binIList = bm.AllStatus_RandItemBatch()
+                action, value = self.getAction(bm,ifRandom = False,currentState=sM) 
+                binChose ,itemChose,rotationChose =   getChoseByAction(action)
+                ifComp,ifSucc  = bm.Place( itIList[itemChose], binIList[binChose] ,rotationChose)
                 
+                    
+                # self.setInitState(bm.AllStatus())
+
+                if ifDraw:
+                    # drawNum = drawNum - 1
+                    print("rotationChose :",rotationChose,"binChose :",binChose,"itemChose :",itemChose,"reward :",0,"ifComp :",ifComp)
                     if ifSucc:
-                        bin = bm.bins[bm._algoVBinIndexList[binChose]]
+                        bin = bm.bins[binIList[binChose]]
                         paper.AddRect(bin.placedRect[-1].X(),bin.placedRect[-1].Y(),bin.placedRect[-1].Width(),bin.placedRect[-1].Height(),binChose)
                         time.sleep(0.5)
                         paper.AddBlackRect(bin.placedRect[-1].X(),bin.placedRect[-1].Y(),bin.placedRect[-1].Width(),bin.placedRect[-1].Height(),binChose)
                     # if reward == -1:
                     #     print("选错item")
                     if not ifSucc:
-                        time.sleep(1)
-                        if orgDrawNum>0 :
+                        if not isContinue:
+                            break
+                        else:
                             paper.Close()
                             paper = Paper(myEnv.binWidth,myEnv.binHeight)
-                        bm= binManager(myEnv ,binV,itemV)
-                        for wh in range(itemV*5):
-                            bm.AddRandomItem()
+                            for iii in range(binV):
+                                bin = bm.bins[bm._algoVBinIndexList[iii]]
+                                for placed in bin.placedRect:
+                                    paper.AddBlackRect(placed.X(),placed.Y(),placed.Width(),placed.Height(),iii)
 
                 
                 
@@ -318,7 +312,7 @@ def runModel(modelPath,ifDraw,askNum):
         brain = BrainDQNMain(binV * itemV *2 , False,modelPath)
         
         if ifDraw:
-            rewardAll ,binAll  = brain.runModel( 1000000,askNum)
+            rewardAll ,binAll  = brain.runModel( 1000000,askNum,isContinue=True)
         else:
             rewardAll ,binAll  = brain.runModel( -1 ,askNum)    
         print("rewardAll:",rewardAll)
@@ -348,7 +342,7 @@ def trainModel():
         # print(brain.currentState.shape) # Step 3.2: run the game
 
         while 1!= 0:
-            action = brain.getAction(bm,ifRandom = True)
+            action,_ = brain.getAction(bm,ifRandom = True)
             binChose ,itemChose,rotationChose =   getChoseByAction(action)
             terminal,_,reward = bm.Action(itemChose,binChose,rotationChose)
             if brain.timeStep %100 ==0:
@@ -369,7 +363,7 @@ if __name__ == '__main__':
     # Step 1: init BrainDQN
     random.seed(0)
     # runModel("./120000params3.pth",False,1)
-    # runModel("./params3.pth",True,1)
+    runModel("./models/1392000params32.pth",True,10)
     # runModel("",True,1)
-    trainModel()
+    # trainModel()
     
